@@ -26,8 +26,9 @@ class CDPRKinematics(Node):
 
         markerQoS = QoSProfile(
             depth=10,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
+        
         self.pub_markers = self.create_publisher(
             Marker, "line_markers", markerQoS
         )
@@ -59,10 +60,10 @@ class CDPRKinematics(Node):
 
         r = np.array([x,y,z])
 
-        cable1 = a1-r-R@b1
-        cable2 = a2-r-R@b2
-        cable3 = a3-r-R@b3
-        cable4 = a4-r-R@b4
+        cable1 = np.linalg.norm(a1-r-R@b1)
+        cable2 = np.linalg.norm(a2-r-R@b2)
+        cable3 = np.linalg.norm(a3-r-R@b3)
+        cable4 = np.linalg.norm(a4-r-R@b4)
 
         cable1_pulley_point = Point()
         cable1_pulley_point.x = a1[0]
@@ -127,6 +128,8 @@ class CDPRKinematics(Node):
 
         self.pub_markers.publish(marker)
         self.broadcast_ee_frame()
+
+        response.cable_lengths = [cable1, cable2, cable3, cable4]
 
         return response
 
