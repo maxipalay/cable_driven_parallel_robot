@@ -1,3 +1,4 @@
 geometry_msgs/Point position
+bool execute
 ---
 float64[] cable_lengths

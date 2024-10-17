@@ -1,0 +1,4 @@
+float64 cable1_length
+float64 cable2_length
+float64 cable3_length
+float64 cable4_length

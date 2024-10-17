@@ -8,6 +8,7 @@ from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from cdpr_kinematics_interfaces.srv import IKrequest
+from cdpr_kinematics_interfaces.msg import JointCommand
 
 class CDPRKinematics(Node):
     def __init__(self, ):
@@ -23,6 +24,8 @@ class CDPRKinematics(Node):
         self.broadcast_static_transforms()
 
         self.srv_ik_request = self.create_service(IKrequest, "ik_request", self.cb_ik_request)
+
+        self.pub_cable_lengths = self.create_publisher(JointCommand, "joint_commands", 10)
 
         markerQoS = QoSProfile(
             depth=10,
@@ -110,6 +113,10 @@ class CDPRKinematics(Node):
         self.broadcast_ee_frame()
 
         response.cable_lengths = [cable1, cable2, cable3, cable4]
+        
+        if request.execute:
+            msg = JointCommand(cable1_length = cable1, cable2_length = cable2, cable3_length = cable3, cable4_length = cable4)
+            self.pub_cable_lengths.publish(msg)
 
         return response
 
