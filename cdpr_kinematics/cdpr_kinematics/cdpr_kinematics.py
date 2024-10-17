@@ -39,6 +39,8 @@ class CDPRKinematics(Node):
         self._timer = self.create_timer(0.1, self.broadcast_ee_frame)
 
     def cb_ik_request(self, request, response):
+        """ Callback for the inverse kinematics service call. """
+        # get xyz from request
         x = request.position.x
         y = request.position.y
         z = request.position.z
@@ -55,35 +57,22 @@ class CDPRKinematics(Node):
         b3 = np.array([-self.head_anchor_distance/2.0,-self.head_anchor_distance/2.0,0.0])
         b4 = np.array([self.head_anchor_distance/2.0,-self.head_anchor_distance/2.0,0.0])
 
-        # R
+        # rotation matrix for calculations (we assume no rotation, orientation lock)
         R = np.eye(3,3)
 
+        # the r vector, translation from world frame to desired ee position
         r = np.array([x,y,z])
 
+        # calculate cable lengths
         cable1 = np.linalg.norm(a1-r-R@b1)
         cable2 = np.linalg.norm(a2-r-R@b2)
         cable3 = np.linalg.norm(a3-r-R@b3)
         cable4 = np.linalg.norm(a4-r-R@b4)
 
-        cable1_pulley_point = Point()
-        cable1_pulley_point.x = a1[0]
-        cable1_pulley_point.y = a1[1]
-        cable1_pulley_point.z = a1[2]
-
-        cable2_pulley_point = Point()
-        cable2_pulley_point.x = a2[0]
-        cable2_pulley_point.y = a2[1]
-        cable2_pulley_point.z = a2[2]
-
-        cable3_pulley_point = Point()
-        cable3_pulley_point.x = a3[0]
-        cable3_pulley_point.y = a3[1]
-        cable3_pulley_point.z = a3[2]
-
-        cable4_pulley_point = Point()
-        cable4_pulley_point.x = a4[0]
-        cable4_pulley_point.y = a4[1]
-        cable4_pulley_point.z = a4[2]
+        cable1_pulley_point = Point(x = a1[0], y = a1[1], z = a1[2])
+        cable2_pulley_point = Point(x = a2[0], y = a2[1], z = a2[2])
+        cable3_pulley_point = Point(x = a3[0], y = a3[1], z = a3[2])
+        cable4_pulley_point = Point(x = a4[0], y = a4[1], z = a4[2])
 
         cable1_head_point = Point(x = (r+b1)[0], y = (r+b1)[1], z = (r+b1)[2])
         cable2_head_point = Point(x = (r+b2)[0], y = (r+b2)[1], z = (r+b2)[2])
@@ -100,22 +89,16 @@ class CDPRKinematics(Node):
         marker.scale.y = 0.01
         marker.scale.z = 0.01
 
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-
-        # marker position
-        marker.pose.position.x = 0.0
-        marker.pose.position.y = 0.0
-        marker.pose.position.z = 0.0
-
         # marker color
         marker.color.a = 1.0
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.color.b = 0.0
 
+        marker.points = [cable1_pulley_point, cable1_head_point, cable2_pulley_point, cable2_head_point, cable3_pulley_point, cable3_head_point, cable4_pulley_point, cable4_head_point]
+        self.pub_markers.publish(marker)
+
+        # update the ik transform
         self.ik_transform.transform.translation.x = x
         self.ik_transform.transform.translation.y = y
         self.ik_transform.transform.translation.z = z
@@ -123,10 +106,7 @@ class CDPRKinematics(Node):
         self.ik_transform.transform.rotation.y = 0.0
         self.ik_transform.transform.rotation.z = 0.0
         self.ik_transform.transform.rotation.w = 1.0
-
-        marker.points = [cable1_pulley_point, cable1_head_point, cable2_pulley_point, cable2_head_point, cable3_pulley_point, cable3_head_point, cable4_pulley_point, cable4_head_point]
-
-        self.pub_markers.publish(marker)
+        
         self.broadcast_ee_frame()
 
         response.cable_lengths = [cable1, cable2, cable3, cable4]
@@ -134,6 +114,7 @@ class CDPRKinematics(Node):
         return response
 
     def broadcast_ee_frame(self):
+        """ Broadcast the transform from world to end effector. """
         t = TransformStamped()
 
         t.header.stamp = self.get_clock().now().to_msg()
@@ -146,7 +127,7 @@ class CDPRKinematics(Node):
 
 
     def broadcast_static_transforms(self):
-
+        """ Broadcast static transforms of the pulleys in world frame. """
         pulleys = {"ids": [0, 1, 2, 3], "positions": [[self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height],
                                                       [-self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height],
                                                       [-self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height],
