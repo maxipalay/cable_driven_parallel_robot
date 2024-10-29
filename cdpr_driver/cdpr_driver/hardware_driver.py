@@ -13,12 +13,30 @@ class CDPRHardware(Node):
             exit()
         
         self.create_subscription(JointCommand, "joint_commands", self.cb_joint_command, 10)
+        self.create_timer(0.025, self.timer_cb)
+        self.pub_feedback = self.create_publisher(JointCommand, "cable_lengths", 10)
         #self.homing()
 
+        # Lambda function to convert the incoming string to an array of floats
+        self.convert_to_floats = lambda s: list(map(float, s[1:].strip().split(',')))
+        self.cable_lengths = [-1.0,-1.0,-1.0,-1.0]
+
+    def timer_cb(self,):
+        if self.serial is not None:
+            recv_str = self.serial.readline().decode()
+            if recv_str != "":
+                if recv_str[0] == "f":
+                    try:
+                        self.cable_lengths = self.convert_to_floats(recv_str)
+                    except Exception as e:
+                        self.get_logger().debug(str(e))
+                        return
+                    msg = JointCommand(cable1_length = self.cable_lengths[0], cable2_length = self.cable_lengths[1], cable3_length = self.cable_lengths[2], cable4_length = self.cable_lengths[3])
+                    self.pub_feedback.publish(msg)
 
     def initialize_serial(self):
         try:
-            self.serial = serial.Serial('/dev/ttyACM0', baudrate=115200)
+            self.serial = serial.Serial('/dev/ttyACM0', baudrate=250000, timeout=0.0)
         except Exception as e:
             self.get_logger().error(str(e))
             return False
@@ -27,13 +45,15 @@ class CDPRHardware(Node):
     def cb_joint_command(self, msg):
         self.get_logger().info(f"sending lengths: {msg.cable1_length:.2f}, {msg.cable2_length:.2f}, {msg.cable3_length:.2f}, {msg.cable4_length:.2f}")
         self.serial.write(f"m {msg.cable1_length} {msg.cable2_length} {msg.cable3_length} {msg.cable4_length}\\n".encode())
+        self.serial.flush()
         return
 
     def homing(self):
         self.get_logger().info('homing')
         self.serial.write(b'h\n')
-        answer = self.serial.readline().decode()
-        self.get_logger().info(answer)
+        # flush?
+        #answer = self.serial.readline().decode()
+        #self.get_logger().info(answer)
         return
     
 def main():

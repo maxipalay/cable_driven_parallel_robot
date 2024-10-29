@@ -17,7 +17,7 @@ class CDPRKinematics(Node):
         # robot characteristics (these should be made parameters of the node)
         self.pulley_distance = 0.976 #
         self.pulley_height = 0.95 # height of pulley at its top point
-        self.head_anchor_distance = 0.1 # FOR 2D MOTION
+        self.head_anchor_distance = 0.05 # FOR 2D MOTION
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_static_broadcaster = StaticTransformBroadcaster(self)
