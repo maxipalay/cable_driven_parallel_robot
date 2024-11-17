@@ -19,7 +19,7 @@ class CDPRHardware(Node):
 
         # Lambda function to convert the incoming string to an array of floats
         self.convert_to_floats = lambda s: list(map(float, s[1:].strip().split(',')))
-        self.cable_lengths = [-1.0,-1.0,-1.0,-1.0]
+        self.cable_lengths = [-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0]
 
     def timer_cb(self,):
         if self.serial is not None:
@@ -31,7 +31,8 @@ class CDPRHardware(Node):
                     except Exception as e:
                         self.get_logger().debug(str(e))
                         return
-                    msg = JointCommand(cable1_length = self.cable_lengths[0], cable2_length = self.cable_lengths[1], cable3_length = self.cable_lengths[2], cable4_length = self.cable_lengths[3])
+                    msg = JointCommand(cable1_length = self.cable_lengths[0], cable2_length = self.cable_lengths[1], cable3_length = self.cable_lengths[2], cable4_length = self.cable_lengths[3],
+                                       cable5_length = self.cable_lengths[4], cable6_length = self.cable_lengths[5], cable7_length = self.cable_lengths[6], cable8_length = self.cable_lengths[7])
                     self.pub_feedback.publish(msg)
 
     def initialize_serial(self):
@@ -43,8 +44,8 @@ class CDPRHardware(Node):
         return True
     
     def cb_joint_command(self, msg):
-        self.get_logger().info(f"sending lengths: {msg.cable1_length:.2f}, {msg.cable2_length:.2f}, {msg.cable3_length:.2f}, {msg.cable4_length:.2f}")
-        self.serial.write(f"m {msg.cable1_length} {msg.cable2_length} {msg.cable3_length} {msg.cable4_length}\\n".encode())
+        self.get_logger().info(f"sending lengths: {msg.cable1_length:.4f}, {msg.cable2_length:.4f}, {msg.cable3_length:.4f}, {msg.cable4_length:.4f}, {msg.cable5_length:.4f}, {msg.cable6_length:.4f}, {msg.cable7_length:.4f}, {msg.cable8_length:.4f}")
+        self.serial.write(f"m {msg.cable1_length} {msg.cable2_length} {msg.cable3_length} {msg.cable4_length} {msg.cable5_length} {msg.cable6_length} {msg.cable7_length} {msg.cable8_length}\\n".encode())
         self.serial.flush()
         return
 

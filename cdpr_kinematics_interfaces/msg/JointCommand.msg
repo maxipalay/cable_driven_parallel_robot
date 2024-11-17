@@ -2,3 +2,7 @@ float64 cable1_length
 float64 cable2_length
 float64 cable3_length
 float64 cable4_length
+float64 cable5_length
+float64 cable6_length
+float64 cable7_length
+float64 cable8_length
