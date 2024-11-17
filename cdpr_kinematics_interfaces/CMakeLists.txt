@@ -29,8 +29,13 @@ set(srv_files
   "srv/IKrequest.srv"
 )
 
+set(msg_files
+  "msg/JointCommand.msg"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
     ${srv_files}
+    ${msg_files}
     DEPENDENCIES geometry_msgs
 )
 
