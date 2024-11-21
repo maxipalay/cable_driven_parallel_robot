@@ -37,8 +37,6 @@ class CDPRKinematics(Node):
 
         self.ik_transform = TransformStamped()
 
-        self._timer = self.create_timer(0.1, self.broadcast_ee_frame)
-
         self._last_pose = None
 
 
@@ -46,6 +44,7 @@ class CDPRKinematics(Node):
             self.tf_broadcaster = TransformBroadcaster(self)
             self.tf_static_broadcaster = StaticTransformBroadcaster(self)
             self.broadcast_static_transforms()
+            self._timer = self.create_timer(0.1, self.broadcast_ee_frame)
 
             markerQoS = QoSProfile(
                 depth=10,
