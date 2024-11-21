@@ -64,7 +64,7 @@ class CDPRKinematics(Node):
                 #self._last_pose = msg
                 pass
 
-            cable_lengths = self.inv_kin.calculate(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w)
+            cable_lengths = self.inv_kin.calculate(msg.pose)
 
             # publish cable lengths
             msg_joints = JointCommand(cable_lengths = cable_lengths, cable_tensions = [])

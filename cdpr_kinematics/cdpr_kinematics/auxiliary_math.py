@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import tf_transformations
+from geometry_msgs.msg import Pose
 
 class InverseKinematics():
 
@@ -34,15 +35,15 @@ class InverseKinematics():
         self.r = None
         self.R = None
 
-    def calculate(self, x, y, z, rx: float = 0.0, ry: float = 0.0, rz: float = 0.0, rw: float = 1.0):
+    def calculate(self, pose = Pose):
         """ Calculate inverse kinematics from position (x,y,z) and orientation quaternion (x,y,z,w). """
 
         # the r vector, translation from world frame to desired ee position
-        r = np.array([x,y,z])
+        r = np.array([pose.position.x,pose.position.y,pose.position.z])
 
         # rotation matrix for calculations
         # Convert to a 4x4 transformation matrix
-        matrix = tf_transformations.quaternion_matrix([rx, ry, rz, rw])
+        matrix = tf_transformations.quaternion_matrix([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
 
         # Extract the 3x3 rotation matrix from the 4x4 transformation matrix
         R = matrix[:3, :3]
@@ -60,7 +61,7 @@ class InverseKinematics():
         self.r = r
         self.R = R
 
-        return cable1, cable2, cable3, cable4, cable5, cable6, cable7, cable8
+        return [cable1, cable2, cable3, cable4, cable5, cable6, cable7, cable8]
 
     def get_pulley_points(self):
         return [self.a1, self.a2, self.a3,
