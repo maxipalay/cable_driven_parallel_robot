@@ -31,8 +31,7 @@ class CDPRHardware(Node):
                     except Exception as e:
                         self.get_logger().debug(str(e))
                         return
-                    msg = JointCommand(cable1_length = self.cable_lengths[0], cable2_length = self.cable_lengths[1], cable3_length = self.cable_lengths[2], cable4_length = self.cable_lengths[3],
-                                       cable5_length = self.cable_lengths[4], cable6_length = self.cable_lengths[5], cable7_length = self.cable_lengths[6], cable8_length = self.cable_lengths[7])
+                    msg = JointCommand(cable_lengths = self.cable_lengths, cable_tensions = [])
                     self.pub_feedback.publish(msg)
 
     def initialize_serial(self):
