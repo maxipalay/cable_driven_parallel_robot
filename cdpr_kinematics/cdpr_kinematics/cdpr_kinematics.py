@@ -11,8 +11,8 @@ from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from cdpr_kinematics.auxiliary_math import InverseKinematics
 from visualization_msgs.msg import Marker
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
-
-from cdpr_kinematics_interfaces.srv import IKrequest
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 from cdpr_kinematics_interfaces.msg import JointCommand
 from geometry_msgs.msg import PoseStamped
 from cdpr_kinematics.auxiliary_math import InverseKinematics
@@ -21,13 +21,16 @@ class CDPRKinematics(Node):
     def __init__(self, ):
         super().__init__("kinematics")
 
-        # robot characteristics (these should be made parameters of the node)
-        self.pulley_distance = 0.95#0.976 #
-        self.pulley_height_high = 0.95#0.965 # height of pulley at its top point
-        self.pulley_height_low = 1.0-0.95 # height of pulley at its top point
-        self.head_anchor_distance = 0.0450 # FOR 2D MOTION
+        
+        self.pulley_distance = 0.95
+        self.pulley_height_high = 0.95
+        self.pulley_height_low = 0.05
+        self.head_anchor_distance = 0.05
         self.effector_height = 0.05
         self.visualization_enabled = True
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.inv_kin = InverseKinematics(self.pulley_distance, self.pulley_height_high, self.pulley_height_low, self.head_anchor_distance, self.effector_height)
 
@@ -54,24 +57,23 @@ class CDPRKinematics(Node):
             self.pub_markers = self.create_publisher(
                 Marker, "line_markers", markerQoS
             )
-            
 
     def cb_ik_request(self, msg):
         """ Callback for the inverse kinematics service call. """
         if self._last_pose != msg:
-            # if the last received pose and the new pose are different
-            if self._last_pose is None or self._last_pose.header.stamp <= msg.header.stamp:
-                #self._last_pose = msg
-                pass
+            cable_tensions = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
 
-            cable_lengths = self.inv_kin.calculate(msg.pose)
+            #cable_lengths = self.inv_kin.calculate(msg.pose)
+            cable_lengths, cable_tensions = self.inv_kin.calculate_with_tensions(Pose(), msg.pose)
 
             # publish cable lengths
-            msg_joints = JointCommand(cable_lengths = cable_lengths, cable_tensions = [])
+            msg_joints = JointCommand(cable_lengths = cable_lengths, cable_tensions = cable_tensions)
             
             self.pub_cable_lengths.publish(msg_joints)
             
             self.get_logger().info("publishing joint commands")
+
+            self._last_pose = msg
 
             if self.visualization_enabled:
 
@@ -122,6 +124,7 @@ class CDPRKinematics(Node):
                 
                 self.broadcast_ee_frame()
             
+                
 
     def broadcast_ee_frame(self):
         """ Broadcast the transform from world to end effector. """
@@ -138,14 +141,16 @@ class CDPRKinematics(Node):
 
     def broadcast_static_transforms(self):
         """ Broadcast static transforms of the pulleys in world frame. """
-        pulleys = {"ids": [0, 1, 2, 3, 4, 5, 6, 7], "positions": [[self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_low],
-                                                      [-self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_low],
-                                                      [-self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_low],
-                                                      [self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_low],
-                                                      [self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_high],
-                                                      [-self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_high],
-                                                      [-self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_high],
-                                                      [self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_high]]}
+        pulleys = {"ids": [0, 1, 2, 3, 4, 5, 6, 7],
+                   "positions": 
+                   [[self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_low],
+                    [-self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_low],
+                    [-self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_low],
+                    [self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_low],
+                    [self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_high],
+                    [-self.pulley_distance/2.0,self.pulley_distance/2.0,self.pulley_height_high],
+                    [-self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_high],
+                    [self.pulley_distance/2.0,-self.pulley_distance/2.0,self.pulley_height_high]]}
 
         transforms = []
 
