@@ -16,25 +16,49 @@ from tf2_ros.transform_listener import TransformListener
 from cdpr_kinematics_interfaces.msg import JointCommand
 from geometry_msgs.msg import PoseStamped
 from cdpr_kinematics.auxiliary_math import InverseKinematics
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 class CDPRKinematics(Node):
     def __init__(self, ):
         super().__init__("kinematics")
 
+        self.declare_parameter("pulley_distance", 0.95, descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description="XY distance between pulleys [m]."))
+        self.declare_parameter("pulley_height_low", 0.05, descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description="Height of the lower pulleys [m]."))
+        self.declare_parameter("pulley_height_high", 0.95, descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description="Height of the upper pulleys [m]."))
+        self.declare_parameter("head_anchor_distance", 0.05, descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description="XY distance in between anchor points on end effector [m]."))
+        self.declare_parameter("head_effector_height", 0.05, descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description="Z distance in between anchor points of end effector [m]."))
         
-        self.pulley_distance = 0.95
-        self.pulley_height_high = 0.95
-        self.pulley_height_low = 0.05
-        self.head_anchor_distance = 0.05
-        self.effector_height = 0.05
+        self.pulley_distance = self.get_parameter(
+            "pulley_distance").get_parameter_value().double_value
+        self.pulley_height_high = self.get_parameter(
+            "pulley_height_high").get_parameter_value().double_value
+        self.pulley_height_low = self.get_parameter(
+            "pulley_height_low").get_parameter_value().double_value
+        self.head_anchor_distance = self.get_parameter(
+            "head_anchor_distance").get_parameter_value().double_value
+        self.effector_height = self.get_parameter(
+            "head_effector_height").get_parameter_value().double_value
         self.visualization_enabled = True
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self.inv_kin = InverseKinematics(self.pulley_distance, self.pulley_height_high, self.pulley_height_low, self.head_anchor_distance, self.effector_height)
+        self.inv_kin = InverseKinematics(self.pulley_distance, self.pulley_height_high, 
+                                         self.pulley_height_low, self.head_anchor_distance,
+                                         self.effector_height)
 
-        self.sub_ik_request = self.create_subscription(PoseStamped, "ik_request", self.cb_ik_request, 10)
+        self.sub_ik_request = self.create_subscription(PoseStamped, "ik_request",
+                                                       self.cb_ik_request, 10)
 
         self.pub_cable_lengths = self.create_publisher(JointCommand, "joint_commands", 10)
 
