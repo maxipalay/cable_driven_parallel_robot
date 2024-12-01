@@ -39,17 +39,12 @@ class InverseKinematics():
         self.R = None
 
     def calculate(self, pose = Pose):
-        """ Calculate inverse kinematics from position (x,y,z) and orientation quaternion (x,y,z,w). """
+        """ Calculate inverse kinematics from position (x,y,z). Orientation is ignored. """
 
         # the r vector, translation from world frame to desired ee position
         r = np.array([pose.position.x,pose.position.y,pose.position.z])
 
-        # rotation matrix for calculations
-        # Convert to a 4x4 transformation matrix
-        matrix = tf_transformations.quaternion_matrix([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
-
-        # Extract the 3x3 rotation matrix from the 4x4 transformation matrix
-        R = matrix[:3, :3]
+        # the rotation matrix for the end effector (the identity)
         R = np.eye(3,3)
 
         # calculate cable lengths
@@ -74,30 +69,11 @@ class InverseKinematics():
             consideration changes in pose angle. """
         
         # calculate force vector F
-        #vec = [target_pose.position.x - current_pose.position.x, 
-        #       target_pose.position.y - current_pose.position.y, 
-        #       target_pose.position.z - current_pose.position.z]
-        
-        
-        #F = np.array([-vec[0], -vec[1], -vec[2]-2.0, 0.0, 0.0])
         F = np.array([0.0, 0.0, -2.0, 0.0, 0.0])
-        #F = F/np.linalg.norm(F)*5.0 # we're asking for a total force of 20N in the direction of displacement
-        #F = F*10.0 # if the workspace is constrained, the module of F should always be less than 1 meter
-        print(f"force vector: {F}")
+        
         # make r and R
         # the r vector, translation from world frame to desired ee position
-        #r = np.array([current_pose.position.x,current_pose.position.y,current_pose.position.z])
         r = np.array([target_pose.position.x,target_pose.position.y,target_pose.position.z])
-
-        # rotation matrix for calculations
-        # Convert to a 4x4 transformation matrix
-        #matrix = tf_transformations.quaternion_matrix([current_pose.orientation.x, 
-        #                                               current_pose.orientation.y, 
-        #                                               current_pose.orientation.z, 
-        #                                               current_pose.orientation.w])
-
-        # Extract the 3x3 rotation matrix from the 4x4 transformation matrix
-        #R = matrix[:3, :3]
         R = np.eye(3, 3)
 
         # calculate cable vectors
@@ -133,12 +109,13 @@ class InverseKinematics():
         J = jacobian[:,:5]
 
         ######################## TENSION CALC ##########################
+
         f_min = np.array([10, 10, 10, 10, 10, 10, 10, 10])  # Minimum tensions
         f_max = np.array([60, 60, 60, 60, 60, 60, 60, 60])  # Maximum tensions
         A_T = J.T
 
-        # Perform the QR decomposition with column pivoting
-        Q, R = np.linalg.qr(A_T.T, mode='complete')  # Transpose A^T to make it 4x2
+        # Perform QR decomposition
+        Q, R = np.linalg.qr(A_T.T, mode='complete')
 
         # Determine the rank based on the diagonal of R
         tolerance = 1e-10  # Threshold to consider values as zero
@@ -152,7 +129,6 @@ class InverseKinematics():
 
         y = -Q.T @ F
         p = np.linalg.pinv(R)@y
-
 
         # Generate all combinations of r constraints
         m, r = H.shape  # m inequalities, r-dimensional subspace
@@ -187,9 +163,9 @@ class InverseKinematics():
                 lambda_sol, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
 
                 # Check if the solution satisfies all inequalities
-                # 6. Map CoG back to force space
+                # Map CoG back to force space
                 f_candidate = H @ lambda_sol + p
-                # 7. Validate final force distribution
+                # Validate final force distribution
                 if np.all(f_candidate >= f_min) and np.all(f_candidate <= f_max):
                 # Since we are generating the equations directly from the bounds, this should already be valid
                     valid_points.append(tuple(lambda_sol))  # Store the valid solution as a tuple
@@ -204,20 +180,13 @@ class InverseKinematics():
         # Convert back to NumPy array for further processing
         valid_points_array = np.array(valid_points)
 
-        # # Output the valid intersection points
-        # print("Valid Intersection Points:")
-        # for point in valid_points_array:
-        #     print(point)
-        # 5. Compute the center of gravity (CoG) of the convex polyhedron
+        # Compute the center of gravity (CoG) of the convex polyhedron
         f = []
         if len(valid_points_array) > 2:
             try:
-                # hull = ConvexHull(valid_points_array)  # Convex hull of the vertices
-                # cog = np.mean(valid_points_array[hull.vertices], axis=0)  # CoG of the polyhedron
-                # Step 1: Compute the convex hull of the valid points
                 hull = ConvexHull(valid_points_array)
 
-                # Step 2: Calculate the centroids of each simplex (triangle, tetrahedron, etc.)
+                # Calculate the centroids of each simplex
                 centroids = []
                 volumes = []
 
@@ -225,35 +194,30 @@ class InverseKinematics():
                     # Get the vertices of the simplex
                     simplex_points = valid_points_array[simplex]
                     
-                    # Step 2a: Calculate the centroid of the simplex (average of its vertices)
+                    # Calculate the centroid of the simplex (average of its vertices)
                     centroid = np.mean(simplex_points, axis=0)
                     centroids.append(centroid)
                     
-                    # Step 2b: Compute the volume of the simplex (for 3D, use the determinant)
-                    # Here using 3D tetrahedron volume formula as an example:
+                    # Compute the volume of the simplex
                     v1, v2, v3 = simplex_points[0], simplex_points[1], simplex_points[2]
-                    v4 = simplex_points[3] if len(simplex_points) == 4 else None  # for tetrahedron (4 points)
+                    v4 = simplex_points[3] if len(simplex_points) == 4 else None 
                     
-                    # Volume (or area) calculation (adjust depending on dimensionality)
-                    volume = np.abs(np.linalg.det([v1, v2, v3])) / 6.0  # For 3D, for 2D use cross product area
+                    # Volume calculation
+                    volume = np.abs(np.linalg.det([v1, v2, v3])) / 6.0
                     
                     volumes.append(volume)
 
-                # Step 3: Compute the weighted center of gravity
+                # Compute the weighted center of gravity
                 total_volume = np.sum(volumes)
                 weighted_centroid = np.sum([centroid * volume for centroid, volume in zip(centroids, volumes)], axis=0) / total_volume
-
-                # print(f"Center of Gravity: {weighted_centroid}")
                 cog = weighted_centroid
             except Exception as e:
                 print(e)
                 return self.calculate(target_pose), []
-            # 6. Map CoG back to force space
+            # Map CoG back to force space
             f = H @ cog + p
-
-            # 7. Validate final force distribution
+            # Validate final force distribution
             if not np.all(f >= f_min) or not np.all(f <= f_max):
-                #raise ValueError("Computed force distribution violates constraints.")
                 print(f"calculated tensions violate constraints")
                 print(f)
                 f = np.zeros(f.shape)
