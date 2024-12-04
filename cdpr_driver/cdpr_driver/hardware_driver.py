@@ -1,3 +1,16 @@
+"""
+This node communicates the kinematics to a microcontroller over USB, and makes the
+feedback data returned by the microcontroller available as topics.
+
+SUBSCRIBERS:
+  + /joint_commands (cdpr_kinematics_interfaces/msg/JointCommand) - Target cable lengths 
+                                                                    and feedforward torques.
+
+PUBLISHERS:
+  + /cable_lengths (cdpr_kinematics_interfaces/msg/JointCommand) - Feedback cable lengths 
+                                                                    and tensions.
+"""
+
 import rclpy
 from rclpy.node import Node
 import serial
@@ -5,8 +18,9 @@ from cdpr_kinematics_interfaces.msg import JointCommand
 
 class CDPRHardware(Node):
     def __init__(self):
-        super().__init__("CPDR_driver")
+        super().__init__("cdpr_driver")
         self.serial = None
+        
         if not self.initialize_serial():
             self.destroy_node()
             exit()

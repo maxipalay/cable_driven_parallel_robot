@@ -1,3 +1,27 @@
+"""
+This node receives a stream of target positions and performs the inverse kinematics.
+It then publishes the joint commands and visualization markers. It also publishes 
+the robot's structure as static transforms, as well as a transform for the requested
+target pose.
+
+SUBSCRIBERS:
+  + /ik_request (geometry_msgs/msg/PoseStamped) - Objective pose of the robot.
+
+PUBLISHERS:
+  + /joint_commands (cdpr_kinematics_interfaces/msg/JointCommand) - Target cable lengths 
+                                                                    and feedforward torques.
+  + /line_markers (visualization_msgs/msg/Marker) - Markers for rviz visualization.                                                                   
+
+PARAMETERS:
+  + pulley_distance (default 0.95) - XY distance between pulleys [m].
+  + pulley_height_low (default 0.05) - Height of the lower pulleys [m].
+  + pulley_height_high (default 0.95) - Height of the upper pulleys [m].
+  + head_anchor_distance (default 0.05) - XY distance in between anchor points on end
+                                                                        effector [m].
+  + head_effector_height (default 0.05) - Z distance in between anchor points of end 
+                                                                        effector [m].
+"""
+
 import rclpy
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
@@ -5,17 +29,12 @@ from geometry_msgs.msg import TransformStamped
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from cdpr_kinematics.auxiliary_math import *
 from geometry_msgs.msg import Point
-from tf2_ros import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
-from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
-from cdpr_kinematics.auxiliary_math import InverseKinematics
 from visualization_msgs.msg import Marker
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from cdpr_kinematics_interfaces.msg import JointCommand
 from geometry_msgs.msg import PoseStamped
-from cdpr_kinematics.auxiliary_math import InverseKinematics
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 class CDPRKinematics(Node):
