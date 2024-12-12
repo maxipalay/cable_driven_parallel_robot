@@ -70,9 +70,31 @@ class CDPRHardware(Node):
         return True
     
     def cb_joint_command(self, msg):
-        self.get_logger().info(f"sending lengths: {msg.cable_lengths[0]:.4f}, {msg.cable_lengths[1]:.4f}, {msg.cable_lengths[2]:.4f}, {msg.cable_lengths[3]:.4f}, {msg.cable_lengths[4]:.4f}, {msg.cable_lengths[5]:.4f}, {msg.cable_lengths[6]:.4f}, {msg.cable_lengths[7]:.4f}")
-        self.get_logger().info(f"sending tensions: {msg.cable_tensions[0]:.4f}, {msg.cable_tensions[1]:.4f}, {msg.cable_tensions[2]:.4f}, {msg.cable_tensions[3]:.4f}, {msg.cable_tensions[4]:.4f}, {msg.cable_tensions[5]:.4f}, {msg.cable_tensions[6]:.4f}, {msg.cable_tensions[7]:.4f}")
-        self.serial.write(f"t {msg.cable_lengths[0]:.6f} {msg.cable_lengths[1]:.6f} {msg.cable_lengths[2]:.6f} {msg.cable_lengths[3]:.6f} {msg.cable_lengths[4]:.6f} {msg.cable_lengths[5]:.6f} {msg.cable_lengths[6]:.6f} {msg.cable_lengths[7]:.6f} {msg.cable_tensions[0]:.6f} {msg.cable_tensions[1]:.6f} {msg.cable_tensions[2]:.6f} {msg.cable_tensions[3]:.6f} {msg.cable_tensions[4]:.6f} {msg.cable_tensions[5]:.6f} {msg.cable_tensions[6]:.6f} {msg.cable_tensions[7]:.6f}\\n".encode())
+        self.get_logger().info(
+            f"sending lengths: {msg.cable_lengths[0]:.4f}, {msg.cable_lengths[1]:.4f}, "
+            f"{msg.cable_lengths[2]:.4f}, {msg.cable_lengths[3]:.4f}, "
+            f"{msg.cable_lengths[4]:.4f}, {msg.cable_lengths[5]:.4f}, "
+            f"{msg.cable_lengths[6]:.4f}, {msg.cable_lengths[7]:.4f}"
+        )
+
+        self.get_logger().info(
+            f"sending tensions: {msg.cable_tensions[0]:.4f}, {msg.cable_tensions[1]:.4f}, "
+            f"{msg.cable_tensions[2]:.4f}, {msg.cable_tensions[3]:.4f}, "
+            f"{msg.cable_tensions[4]:.4f}, {msg.cable_tensions[5]:.4f}, "
+            f"{msg.cable_tensions[6]:.4f}, {msg.cable_tensions[7]:.4f}"
+        )
+
+        self.serial.write((
+            f"t {msg.cable_lengths[0]:.6f} {msg.cable_lengths[1]:.6f} "
+            f"{msg.cable_lengths[2]:.6f} {msg.cable_lengths[3]:.6f} "
+            f"{msg.cable_lengths[4]:.6f} {msg.cable_lengths[5]:.6f} "
+            f"{msg.cable_lengths[6]:.6f} {msg.cable_lengths[7]:.6f} "
+            f"{msg.cable_tensions[0]:.6f} {msg.cable_tensions[1]:.6f} "
+            f"{msg.cable_tensions[2]:.6f} {msg.cable_tensions[3]:.6f} "
+            f"{msg.cable_tensions[4]:.6f} {msg.cable_tensions[5]:.6f} "
+            f"{msg.cable_tensions[6]:.6f} {msg.cable_tensions[7]:.6f}\\n"
+        ).encode())
+
         self.serial.flush()
         return
     
