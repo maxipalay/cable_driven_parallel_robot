@@ -23,3 +23,15 @@ Running the system should be as simple as plugging in the ROS2-enabled computer 
 This will launch the `kinematics` node, the `driver` node, and `rviz2` with the proper configuration file to visualize robot frames and markers for the inverse kinematics cables calculations.
 
 If this is all running, the robot is listening for commands on the `/ik_request` topic. As soon as a message is published on that topic, the inverse kinematics will be calculated and the robot will attempt to achieve the target position as quickly as possible.
+
+As an example, you can publish a target position using the ROS 2 command line:
+
+`ros2 topic pub /ik_request geometry_msgs/msg/PoseStamped "{pose: {position: {x: 0.0, y: 0.0, z: 0.5}}}"`
+
+### Launch feedback
+
+To get feedback from the AprilTags mounted on the robot another launchfile is provided. This launches the `realsense` node, the `apriltag` node and two static transforms. The default rviz configuration file already displays the camera feed and the transforms published by the `apriltag` node.
+
+`ros2 launch cdpr_bringup launch_feedback.launch.py`
+
+The `apriltag` configuration file is in the `cdpr_bringup` package under the `config` directory.
